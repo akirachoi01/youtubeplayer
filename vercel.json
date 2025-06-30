@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "Vercel CLI 43.3.0"
-    }
-  }
-}
