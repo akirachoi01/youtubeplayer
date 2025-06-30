@@ -68,7 +68,7 @@
     <p id="error" style="color:red;"></p>
   </div>
 
-  <!-- 🎵 Main App Hidden by Default -->
+  <!-- 🎵 Main App -->
   <div id="app" style="display: none;">
     <h1>YouTube Music Queue Player</h1>
 
@@ -90,10 +90,8 @@
     <div id="youtube-player" style="width: 0; height: 0;"></div>
   </div>
 
-  <!-- ✅ Verifier Script -->
   <script>
-    const correctCode = "letmein123"; // change this code as needed
-
+    const correctCode = "letmein123";
     function checkAccess() {
       const input = document.getElementById('accessCode').value;
       if (input === correctCode) {
@@ -105,10 +103,11 @@
     }
   </script>
 
-  <!-- 🎥 YouTube API + Music Queue Logic -->
+  <!-- 🎥 YouTube API -->
   <script src="https://www.youtube.com/iframe_api"></script>
   <script>
-    const API_KEY = "AIzaSyCT5uYssh2bfXO_mOIMTwDVoQ0r5mxsstU";
+    const API_KEY = "YOUR_YOUTUBE_API_KEY"; // <-- Replace with your real API key
+
     let player, playerReady = false, queue = [], currentIndex = -1, isPlaying = false;
 
     function onYouTubeIframeAPIReady() {
@@ -182,10 +181,7 @@
     }
 
     function playCurrent() {
-      if (!playerReady || !queue[currentIndex]) {
-        console.warn("Player not ready or no track loaded.");
-        return;
-      }
+      if (!playerReady || !queue[currentIndex]) return;
       player.loadVideoById(queue[currentIndex].videoId);
       isPlaying = true;
       updateQueueDisplay();
