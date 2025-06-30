@@ -5,90 +5,235 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>YouTube Music Queue Player</title>
   <style>
-    body { background-color: #121212; color: #eee; font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-    .player-controls { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
-    .player-controls button { background: #1e1e1e; border: none; padding: 10px 20px; font-size: 18px; color: #eee; border-radius: 5px; cursor: pointer; }
-    .player-controls button:hover { background: #333; }
-    input[type="range"] { width: 100px; }
-    #results div { transition: background 0.3s; }
-    #results div:hover { background: #333; }
+    body {
+      background-color: #121212;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    .player-controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .player-controls button {
+      background: #1e1e1e;
+      border: none;
+      padding: 10px 20px;
+      font-size: 18px;
+      color: #eee;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .player-controls button:hover {
+      background: #333;
+    }
+    input[type="range"] {
+      width: 100px;
+    }
+    #results div {
+      transition: background 0.3s;
+    }
+    #results div:hover {
+      background: #333;
+    }
+    #verifier {
+      margin-top: 50px;
+    }
+    #verifier input {
+      padding: 10px;
+      border-radius: 5px;
+      width: 200px;
+    }
+    #verifier button {
+      padding: 10px 20px;
+      margin-left: 10px;
+      border: none;
+      border-radius: 5px;
+      background: #00aaff;
+      color: white;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <h1>YouTube Music Queue Player</h1>
-  <input type="text" id="yt-search" placeholder="Search YouTube Music..." style="width: 60%; padding: 10px; border-radius: 5px;" />
-  <button onclick="searchYouTube()" style="padding: 10px 15px; background: #00aaff; color: white; border: none; border-radius: 5px;">Search</button>
-  <div id="results" style="max-width: 600px; margin: 20px auto;"></div>
-  <div class="player-controls">
-    <button onclick="prevTrack()">⏮️</button>
-    <button onclick="togglePlayPause()" id="playPauseBtn">▶️</button>
-    <button onclick="nextTrack()">⏭️</button>
-    <input type="range" id="volumeControl" min="0" max="100" value="50">
+
+  <!-- 🔐 Access Verifier -->
+  <div id="verifier">
+    <h2>Enter Access Code</h2>
+    <input type="password" id="accessCode" placeholder="Access code..." />
+    <button onclick="checkAccess()">Submit</button>
+    <p id="error" style="color:red;"></p>
   </div>
-  <h3>Queue</h3>
-  <ul id="queue" style="list-style: none; padding: 0;"></ul>
-  <div id="youtube-player" style="width: 0; height: 0;"></div>
+
+  <!-- 🎵 Main App Hidden by Default -->
+  <div id="app" style="display: none;">
+    <h1>YouTube Music Queue Player</h1>
+
+    <input type="text" id="yt-search" placeholder="Search YouTube Music..." style="width: 60%; padding: 10px; border-radius: 5px;" />
+    <button onclick="searchYouTube()" style="padding: 10px 15px; background: #00aaff; color: white; border: none; border-radius: 5px;">Search</button>
+
+    <div id="results" style="max-width: 600px; margin: 20px auto;"></div>
+
+    <div class="player-controls">
+      <button onclick="prevTrack()">⏮️</button>
+      <button onclick="togglePlayPause()" id="playPauseBtn">▶️</button>
+      <button onclick="nextTrack()">⏭️</button>
+      <input type="range" id="volumeControl" min="0" max="100" value="50">
+    </div>
+
+    <h3>Queue</h3>
+    <ul id="queue" style="list-style: none; padding: 0;"></ul>
+
+    <div id="youtube-player" style="width: 0; height: 0;"></div>
+  </div>
+
+  <!-- ✅ Verifier Script -->
+  <script>
+    const correctCode = "letmein123"; // change this code as needed
+
+    function checkAccess() {
+      const input = document.getElementById('accessCode').value;
+      if (input === correctCode) {
+        document.getElementById('verifier').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+      } else {
+        document.getElementById('error').textContent = "Incorrect code.";
+      }
+    }
+  </script>
+
+  <!-- 🎥 YouTube API + Music Queue Logic -->
   <script src="https://www.youtube.com/iframe_api"></script>
   <script>
+    const API_KEY = "AIzaSyCT5uYssh2bfXO_mOIMTwDVoQ0r5mxsstU";
     let player, playerReady = false, queue = [], currentIndex = -1, isPlaying = false;
+
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('youtube-player', {
-        height: '0', width: '0', videoId: '', events: {
-          onReady: () => { playerReady = true; setVolume(50); },
-          onStateChange: e => { if (e.data === YT.PlayerState.ENDED) nextTrack(); }
+        height: '0',
+        width: '0',
+        videoId: '',
+        events: {
+          onReady: () => {
+            playerReady = true;
+            setVolume(50);
+          },
+          onStateChange: (event) => {
+            if (event.data === YT.PlayerState.ENDED) {
+              nextTrack();
+            }
+          }
         }
       });
     }
+
     function searchYouTube() {
       const query = document.getElementById('yt-search').value;
       const resultsDiv = document.getElementById('results');
       resultsDiv.innerHTML = 'Searching...';
-      fetch(`/api/search?q=${encodeURIComponent(query)}`)
+      fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=5&q=${encodeURIComponent(query)}&key=${API_KEY}`)
         .then(res => res.json())
         .then(data => {
           resultsDiv.innerHTML = '';
           data.items.forEach(item => {
-            const { videoId } = item.id;
-            const { title, thumbnails } = item.snippet;
+            const videoId = item.id.videoId;
+            const title = item.snippet.title;
+            const thumbnail = item.snippet.thumbnails.default.url;
             const resultItem = document.createElement('div');
-            resultItem.style.cssText = "display: flex; align-items: center; margin-bottom: 10px; cursor: pointer; background: #222; border-radius: 5px; padding: 10px;";
-            resultItem.innerHTML = `<img src="${thumbnails.default.url}" alt="${title}" style="margin-right: 10px; border-radius: 4px;"><div>${title}</div>`;
+            resultItem.style.display = 'flex';
+            resultItem.style.alignItems = 'center';
+            resultItem.style.marginBottom = '10px';
+            resultItem.style.cursor = 'pointer';
+            resultItem.style.background = '#222';
+            resultItem.style.borderRadius = '5px';
+            resultItem.style.padding = '10px';
+            resultItem.innerHTML = `
+              <img src="${thumbnail}" alt="${title}" style="margin-right: 10px; border-radius: 4px;">
+              <div>${title}</div>
+            `;
             resultItem.onclick = () => addToQueue({ title, videoId });
             resultsDiv.appendChild(resultItem);
           });
         })
-        .catch(err => { console.error(err); resultsDiv.innerHTML = 'Error fetching results.'; });
+        .catch(err => {
+          console.error(err);
+          resultsDiv.innerHTML = 'Error fetching results.';
+        });
     }
+
     function addToQueue(song) {
       queue.push(song);
       updateQueueDisplay();
-      if (!isPlaying) { currentIndex = queue.length - 1; waitForPlayerThenPlay(); }
+      if (!isPlaying) {
+        currentIndex = queue.length - 1;
+        waitForPlayerThenPlay();
+      }
     }
+
     function waitForPlayerThenPlay() {
-      if (!playerReady || !player.loadVideoById) return setTimeout(waitForPlayerThenPlay, 300);
+      if (!playerReady || !player.loadVideoById) {
+        setTimeout(waitForPlayerThenPlay, 300);
+        return;
+      }
       playCurrent();
     }
+
     function playCurrent() {
-      if (!playerReady || !queue[currentIndex]) return;
+      if (!playerReady || !queue[currentIndex]) {
+        console.warn("Player not ready or no track loaded.");
+        return;
+      }
       player.loadVideoById(queue[currentIndex].videoId);
       isPlaying = true;
       updateQueueDisplay();
       updatePlayPauseButton();
     }
-    function nextTrack() { if (currentIndex < queue.length - 1) { currentIndex++; playCurrent(); } }
-    function prevTrack() { if (currentIndex > 0) { currentIndex--; playCurrent(); } }
+
+    function nextTrack() {
+      if (currentIndex < queue.length - 1) {
+        currentIndex++;
+        playCurrent();
+      }
+    }
+
+    function prevTrack() {
+      if (currentIndex > 0) {
+        currentIndex--;
+        playCurrent();
+      }
+    }
+
     function togglePlayPause() {
       if (!player) return;
       const state = player.getPlayerState();
-      if (state === YT.PlayerState.PLAYING) { player.pauseVideo(); isPlaying = false; }
-      else if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.CUED) { player.playVideo(); isPlaying = true; }
+      if (state === YT.PlayerState.PLAYING) {
+        player.pauseVideo();
+        isPlaying = false;
+      } else if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.CUED) {
+        player.playVideo();
+        isPlaying = true;
+      }
       updatePlayPauseButton();
     }
+
     function updatePlayPauseButton() {
-      document.getElementById('playPauseBtn').textContent = isPlaying ? '⏸️' : '▶️';
+      const btn = document.getElementById('playPauseBtn');
+      btn.textContent = isPlaying ? '⏸️' : '▶️';
     }
-    function setVolume(val) { if (player && player.setVolume) player.setVolume(val); }
-    document.getElementById('volumeControl').addEventListener('input', function () { setVolume(this.value); });
+
+    function setVolume(val) {
+      if (player && player.setVolume) {
+        player.setVolume(val);
+      }
+    }
+
+    document.getElementById('volumeControl').addEventListener('input', function () {
+      setVolume(this.value);
+    });
+
     function updateQueueDisplay() {
       const queueList = document.getElementById('queue');
       queueList.innerHTML = '';
