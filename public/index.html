@@ -137,6 +137,39 @@
     width: 0;
     height: 0;
   }
+
+.music-bars {
+  display: flex;
+  gap: 4px;
+  height: 24px;
+  margin: 0 10px;
+  align-items: end;
+}
+
+.music-bars .bar {
+  width: 4px;
+  height: 100%;
+  background: #1db954;
+  animation: bounce 1s infinite ease-in-out;
+  transform-origin: bottom;
+}
+
+.music-bars .bar:nth-child(1) { animation-delay: 0s; }
+.music-bars .bar:nth-child(2) { animation-delay: 0.2s; }
+.music-bars .bar:nth-child(3) { animation-delay: 0.4s; }
+.music-bars .bar:nth-child(4) { animation-delay: 0.2s; }
+.music-bars .bar:nth-child(5) { animation-delay: 0s; }
+
+@keyframes bounce {
+  0%, 100% { height: 20%; }
+  50% { height: 100%; }
+}
+
+#musicBars {
+  visibility: hidden; /* Hide initially */
+}
+
+    
 </style>
 
 <div class="player-controls">
@@ -145,6 +178,14 @@
   <button onclick="nextTrack()">⏭️</button>
   <input type="range" id="volumeControl" min="0" max="100" value="50">
 </div>
+<div class="music-bars" id="musicBars" style="visibility: hidden;">
+  <div class="bar"></div>
+  <div class="bar"></div>
+  <div class="bar"></div>
+  <div class="bar"></div>
+  <div class="bar"></div>
+</div>
+
 
 <h3>🎵 Music Queue</h3>
 <ul id="queue"></ul>
@@ -231,46 +272,51 @@
       playCurrent();
     }
 
-    function playCurrent() {
-      if (!playerReady || !queue[currentIndex]) return;
-      player.loadVideoById(queue[currentIndex].videoId);
-      isPlaying = true;
-      updateQueueDisplay();
-      updatePlayPauseButton();
-    }
+function togglePlayPause() {
+  if (!player) return;
+  const state = player.getPlayerState();
+  const bars = document.getElementById('musicBars');
 
-    function nextTrack() {
-      if (currentIndex < queue.length - 1) {
-        currentIndex++;
-        playCurrent();
-      }
-    }
+  if (state === YT.PlayerState.PLAYING) {
+    player.pauseVideo();
+    isPlaying = false;
+    bars.style.visibility = "hidden";
+  } else {
+    player.playVideo();
+    isPlaying = true;
+    bars.style.visibility = "visible";
+  }
 
-    function prevTrack() {
-      if (currentIndex > 0) {
-        currentIndex--;
-        playCurrent();
-      }
-    }
+  updatePlayPauseButton();
+}
+function playCurrent() {
+  if (!playerReady || !queue[currentIndex]) return;
+  player.loadVideoById(queue[currentIndex].videoId);
+  isPlaying = true;
+  updateQueueDisplay();
+  updatePlayPauseButton();
+  
+  const bars = document.getElementById('musicBars');
+  bars.style.visibility = "visible";
+}
+function onPlayerStateChange(event) {
+  const bars = document.getElementById("musicBars");
 
-    function togglePlayPause() {
-      if (!player) return;
-      const state = player.getPlayerState();
-      if (state === YT.PlayerState.PLAYING) {
-        player.pauseVideo();
-        isPlaying = false;
-      } else {
-        player.playVideo();
-        isPlaying = true;
-      }
-      updatePlayPauseButton();
-    }
+  if (event.data === YT.PlayerState.ENDED) {
+    bars.style.visibility = "hidden";
+    nextTrack(); // auto play next
+  }
 
-    function updatePlayPauseButton() {
-      const btn = document.getElementById('playPauseBtn');
-      btn.textContent = isPlaying ? '⏸️' : '▶️';
-    }
+  if (event.data === YT.PlayerState.PAUSED) {
+    bars.style.visibility = "hidden";
+  }
 
+  if (event.data === YT.PlayerState.PLAYING) {
+    bars.style.visibility = "visible";
+  }
+}
+
+    
     function setVolume(val) {
       if (player && player.setVolume) {
         player.setVolume(val);
